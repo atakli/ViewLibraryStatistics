@@ -1,38 +1,46 @@
 #include "viewstatistics.h"
 
+#include <QMessageBox>
 #include <QGridLayout>
-#include <QSizePolicy>
+#include <algorithm>
+//#include <QSizePolicy>
 #include <QLabel>
-#include <QDebug>
 #include <QFile>
+#include <QDir>
 
-int hrp = 0; // horizontalReferencePoint
+#include <iostream>
 
+const QString statisticsFile = QDir::homePath() + QDir::separator() + ".kutuphaneIstatistikleri.csv";
+const QString appName = "İstatistik Görüntüleme Programı";
+
+//template<typename T = int, int cols>
+//void createLabels(QLabel* (*label)[cols], T rows)//, int width=100, int height=100)
 template<int rows, int cols>
-void createLabels(QLabel* (&label)[rows][cols], int width=100, int height=100)
+void createLabels(QLabel* (&label)[rows][cols])//, int width=100, int height=100)
 {
 	for (int i = 0; i < rows; ++i)
 		for (int j = 0; j < cols; ++j)
-	{
-		label[i][j] = new QLabel;
-		label[i][j]->setAlignment(Qt::AlignCenter);
-		label[i][j]->setFrameShape(QFrame::Panel);
-		label[i][j]->setFrameShadow(QFrame::Sunken);
-		label[i][j]->setLineWidth(3);
-//		label[i][j]->setFixedSize(width, height);
-	}
+        {
+            label[i][j] = new QLabel;
+            label[i][j]->setAlignment(Qt::AlignCenter);
+            label[i][j]->setFrameShape(QFrame::Panel);
+            label[i][j]->setFrameShadow(QFrame::Sunken);
+            label[i][j]->setLineWidth(3);
+    //		label[i][j]->setFixedSize(width, height);
+        }
 }
 
 ViewStatistics::ViewStatistics(QWidget *parent) : QWidget(parent)
 {
-	QLabel *ageLabels[NumAgeLabels][1], *genderLabels[NumGenderLabels][1], *intentLabels[NumIntentLabels][1], *countLabels[NumCountLabelsRows][NumCountLabelsCols];
+    QLabel *ageLabels[NumAgeLabels][1], *genderLabels[NumGenderLabels][1], *intentLabels[NumIntentLabels][1], *countLabels[NumCountLabelsRows][NumCountLabelsCols];
 	QLabel *sumLabels[NumSumLabels][1];
 
-	createLabels(countLabels);
-	createLabels(ageLabels,200);
-	createLabels(genderLabels);
-	createLabels(intentLabels);
-	createLabels(sumLabels);
+    createLabels(countLabels);
+    createLabels(ageLabels);//,200);
+    createLabels(genderLabels);
+    createLabels(intentLabels);
+//	createLabels(sumLabels, );
+    createLabels(sumLabels);
 
 	QGridLayout *mainLayout = new QGridLayout;
 //	QHBoxLayout *horizontalLayout = new QHBoxLayout;
@@ -85,41 +93,39 @@ ViewStatistics::ViewStatistics(QWidget *parent) : QWidget(parent)
 	setWindowTitle("İstatistik Sonuçları");
 
 	view(countLabels, sumLabels);
+
+//    update.setParameters("https://api.github.com/repos/atakli/ViewLibraryStatistics/releases/latest", appName, "istatistikGoruntule.exe");
+//    update.isNewVersionAvailable();
 }
-QString ViewStatistics::openFile()
+QString ViewStatistics::readFile() const
 {
-	QFile file("/home/b720/qt-projects/build-librarystatistics-Desktop_Qt_5_14_2_GCC_64bit-Release/istatistikler.csv");
+    QFile file(statisticsFile);
 	if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-		return "";							// TODO: buraya girerse ne olcak?
-	QString text = file.readAll();
-	file.close();
-	return text;
+    {
+        QMessageBox msgBox(QMessageBox::Question, appName, statisticsFile + " dosyasi bulunamadı!", QMessageBox::Ok);
+        msgBox.setButtonText(QMessageBox::Ok, "Tamam");
+        msgBox.exec();
+        exit(EXIT_FAILURE);
+    }
+    return file.readAll();
 }
 std::vector<std::vector<int>> ViewStatistics::parseFile()
 {
-	QStringList lines = openFile().split('\n');
+    const QStringList lines = readFile().split('\n');
 
 //	std::vector<std::vector<int>> statistics(ROW_COUNT, std::vector<int>(COLUMN_COUNT));
 	std::vector<std::vector<int>> statistics;
-	std::vector<int> sonuc;
+    statistics.reserve(NumCountLabelsCols);
+    std::vector<int> sonuc;
+    sonuc.reserve(NumCountLabelsRows);
 
-	foreach(QString line, lines)
-	{
-//		qDebug() << "line:" << line;
-		QStringList elemanlar = line.split(',');
-		foreach(auto eleman, elemanlar)
-			sonuc.emplace_back(eleman.toInt());
-		statistics.emplace_back(sonuc);
-//		qDebug() << sonuc;
-		sonuc.clear();
-	}
-//	qDebug() << statistics.size();
-//	foreach(auto k1, statistics)
-//	{
-//		foreach(auto k2, k1)
-//			qDebug() << k2;
-//		qDebug() << "da";
-//	}
+    for (const QString& line : lines)
+    {
+        QStringList elemanlar = line.split(',');
+        std::for_each(elemanlar.cbegin(), elemanlar.cend(), [&sonuc](const auto& eleman){sonuc.emplace_back(eleman.toInt());});
+        statistics.emplace_back(sonuc);
+        sonuc.clear();
+    }
 	return statistics;
 }
 void ViewStatistics::view(QLabel *countLabels[NumCountLabelsRows][NumCountLabelsCols], QLabel *sumLabels[NumSumLabels][1])
@@ -128,14 +134,11 @@ void ViewStatistics::view(QLabel *countLabels[NumCountLabelsRows][NumCountLabels
 	for (int i = 0; i < NumCountLabelsRows; ++i)
 		for (int j = 0; j < NumCountLabelsCols; ++j)
 			countLabels[i][j]->setText(QString::number(savedStatistics[j][i]));
-	int total = 0;
 	for(int j = 0; j < NumCountLabelsCols; ++j)
 	{
+        int total = 0;
 		for(int i = 0; i < NumCountLabelsRows; ++i)
-		{
 			total += countLabels[i][j]->text().toInt();
-		}
 		sumLabels[j+1][0]->setText(QString::number(total));
-		total = 0;
 	}
 }
