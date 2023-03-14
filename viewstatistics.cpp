@@ -9,7 +9,7 @@
 
 #include <iostream>
 
-const QString statisticsFile = QDir::homePath() + QDir::separator() + ".kutuphaneIstatistikleri.csv";
+const QString statisticsFile = QDir::homePath() + QDir::separator() + ".kutuphaneIstatistikleri";
 const QString appName = "İstatistik Görüntüleme Programı";
 
 //template<typename T = int, int cols>
@@ -49,16 +49,16 @@ ViewStatistics::ViewStatistics(QWidget *parent) : QWidget(parent)
 
 	for (int i = 0; i < NumCountLabelsRows; ++i)
 		for (int j = 0; j < NumCountLabelsCols; ++j)
-			mainLayout->addWidget(countLabels[i][j], i+2,j+1);
+			mainLayout->addWidget(countLabels[i][j], i + 2, j + 1);
 	for (int j = 0; j < NumAgeLabels; ++j)
-			mainLayout->addWidget(ageLabels[j][0], 0,2*j+1,1,2);
+		mainLayout->addWidget(ageLabels[j][0], 0, 2 * j + 1, 1, 2);
 	for (int j = 0; j < NumGenderLabels; ++j)
 	{
 		if(j % 2 == 0)
 			genderLabels[j][0]->setText("ERKEK");
 		else
 			genderLabels[j][0]->setText("KADIN");
-		mainLayout->addWidget(genderLabels[j][0], 1,j+1);
+		mainLayout->addWidget(genderLabels[j][0], 1, j + 1);
 	}
 	for (int i = 0; i < NumIntentLabels; ++i)
 	{
@@ -66,7 +66,7 @@ ViewStatistics::ViewStatistics(QWidget *parent) : QWidget(parent)
 //		QSizePolicy::Policy expandingPolicy(QSizePolicy::Expanding);
 //		intentLabels[i][0]->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 //		intentLabels[i][0]->setSizePolicy(QSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX));
-		mainLayout->addWidget(intentLabels[i][0], i+2,0);
+		mainLayout->addWidget(intentLabels[i][0], i + 2, 0);
 	}
 	for (int j = 0; j < NumSumLabels; ++j)
 		mainLayout->addWidget(sumLabels[j][0], NumIntentLabels + 2, j);

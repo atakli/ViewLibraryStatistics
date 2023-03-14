@@ -1,7 +1,7 @@
 #include <QApplication>
 
 #include "viewstatistics.h"
-#include "windows.h"
+//#include "windows.h"
 
 //#include <iostream>
 
