@@ -5,7 +5,6 @@
 #include <algorithm>
 //#include <QSizePolicy>
 #include <QLabel>
-#include <QFile>
 #include <QDir>
 
 #include <iostream>
@@ -97,43 +96,40 @@ ViewStatistics::ViewStatistics(QWidget *parent) : QWidget(parent)
 //    update.setParameters("https://api.github.com/repos/atakli/ViewLibraryStatistics/releases/latest", appName, "istatistikGoruntule.exe");
 //    update.isNewVersionAvailable();
 }
-QString ViewStatistics::readFile() const
+std::unique_ptr<QFile> ViewStatistics::openFile() const
 {
-    QFile file(statisticsFile);
-	if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+    auto file = std::make_unique<QFile>(statisticsFile);
+    if (!file->open(QIODevice::ReadOnly | QIODevice::Text))
     {
         QMessageBox msgBox(QMessageBox::Question, appName, statisticsFile + " dosyasi bulunamadı!", QMessageBox::Ok);
         msgBox.setButtonText(QMessageBox::Ok, "Tamam");
         msgBox.exec();
         exit(EXIT_FAILURE);
     }
-    return file.readAll();
-}
-std::vector<std::vector<int>> ViewStatistics::parseFile()
-{
-    const QStringList lines = readFile().split('\n');
-
-//	std::vector<std::vector<int>> statistics(ROW_COUNT, std::vector<int>(COLUMN_COUNT));
-	std::vector<std::vector<int>> statistics;
-    statistics.reserve(NumCountLabelsCols);
-    std::vector<int> sonuc;
-    sonuc.reserve(NumCountLabelsRows);
-
-    for (const QString& line : lines)
-    {
-        QStringList elemanlar = line.split(',');
-        std::for_each(elemanlar.cbegin(), elemanlar.cend(), [&sonuc](const auto& eleman){sonuc.emplace_back(eleman.toInt());});
-        statistics.emplace_back(sonuc);
-        sonuc.clear();
-    }
-	return statistics;
+    return file;
 }
 void ViewStatistics::view(QLabel *countLabels[NumCountLabelsRows][NumCountLabelsCols], QLabel *sumLabels[NumSumLabels][1])
 {
-	std::vector<std::vector<int>> savedStatistics = parseFile();
-	for (int i = 0; i < NumCountLabelsRows; ++i)
-		for (int j = 0; j < NumCountLabelsCols; ++j)
-			countLabels[i][j]->setText(QString::number(savedStatistics[j][i]));
+    auto statistics = openFile();
+
+    auto bytearrayToInt = [](const QByteArray& number)
+    {
+        if constexpr (std::endian::native == std::endian::big)
+            return number.toInt();
+        else
+        {
+            QDataStream stream(number);
+            stream.setByteOrder(QDataStream::LittleEndian);
+            int num;
+            stream >> num; // read the integer from the data stream
+            return num;
+        }
+    };
+
+    for (int i = 0; i < NumCountLabelsRows; ++i)
+        for (int j = 0; j < NumCountLabelsCols; ++j)
+            countLabels[i][j]->setText(QString::number(bytearrayToInt(statistics->read(1 * sizeof(int)))));
+
 	for(int j = 0; j < NumCountLabelsCols; ++j)
 	{
         int total = 0;
